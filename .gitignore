@@ -1,0 +1,67 @@
+# =========================
+# Build folders
+# =========================
+build/
+Build/
+[Bb]in/
+[Bb]uild/
+[Cc]MakeFiles/
+cmake-build-*/
+CMakeCache.txt
+compile_commands.json
+
+# =========================
+# CMake
+# =========================
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# =========================
+# Generated project files
+# =========================
+*.sln
+*.vcxproj*
+*.xcodeproj
+*.xcworkspace
+*.pbxproj
+*.cbp
+*.opensdf
+*.sdf
+
+# =========================
+# Binaries
+# =========================
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+
+# =========================
+# Object files
+# =========================
+*.o
+*.obj
+*.a
+*.lib
+*.lo
+*.la
+
+# =========================
+# Logs / temp
+# =========================
+*.log
+*.tmp
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# VSCode / IDE
+# =========================
+.vscode/
+.idea/
