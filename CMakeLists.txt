@@ -22,8 +22,8 @@ set(_default_urho_prefix "${CMAKE_SOURCE_DIR}/../rbfx/build/install")
 if(EXISTS "${_default_urho_prefix}/share/Urho3D/CMake/Urho3DConfig.cmake")
 	list(APPEND CMAKE_PREFIX_PATH "${_default_urho_prefix}")
 	message(STATUS "Appended ${_default_urho_prefix} to CMAKE_PREFIX_PATH")
-	# Prefer shared Urho3D imported targets from the local install
-	set(URHO3D_SHARED ON CACHE BOOL "Use Urho3D shared build" FORCE)
+	# Do not force URHO3D_SHARED here: it may mismatch installed package tag
+	# (e.g. macos-arm64-lib vs macos-arm64-dll) and break find_package.
 endif()
 
 find_package(Urho3D REQUIRED)

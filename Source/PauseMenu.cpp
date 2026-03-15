@@ -23,7 +23,7 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
     root_->SetEnabled(false);
 
     auto* panel = root_->CreateChild<BorderImage>();
-    panel->SetMinSize(450, 300);
+    panel->SetMinSize(520, 470);
     panel->SetColor(Color(0.05f, 0.05f, 0.06f, 0.9f));
     panel->SetName("PausePanel");
     panel->SetAlignment(HA_CENTER, VA_CENTER);
@@ -34,7 +34,13 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
         root_->SetSize(rootSize);
     }
 
-    auto* title = panel->CreateChild<Text>();
+    mainPage_ = panel->CreateChild<UIElement>();
+    mainPage_->SetSize(panel->GetSize());
+
+    videoPage_ = panel->CreateChild<UIElement>();
+    videoPage_->SetSize(panel->GetSize());
+
+    auto* title = mainPage_->CreateChild<Text>();
     title->SetStyleAuto();
     title->SetText("PAUSED");
     title->SetHorizontalAlignment(HA_CENTER);
@@ -45,7 +51,7 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
         title->SetFont(uiFont, 30);
 
     // View distance controls
-    viewDistanceText_ = panel->CreateChild<Text>();
+    viewDistanceText_ = mainPage_->CreateChild<Text>();
     viewDistanceText_->SetStyleAuto();
     viewDistanceText_->SetText("Дальность прорисовки: 1");
     viewDistanceText_->SetHorizontalAlignment(HA_CENTER);
@@ -54,7 +60,7 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
     if (uiFont)
         viewDistanceText_->SetFont(uiFont, 20);
 
-    viewDistanceSlider_ = panel->CreateChild<Slider>();
+    viewDistanceSlider_ = mainPage_->CreateChild<Slider>();
     viewDistanceSlider_->SetStyleAuto();
     viewDistanceSlider_->SetName("ViewDistanceSlider");
     viewDistanceSlider_->SetMinSize(330, 24);
@@ -71,7 +77,7 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
         sliderKnob->SetColor(Color(0.95f, 0.95f, 0.95f, 1.0f));
 
     // Chunk count label
-    chunkCountText_ = panel->CreateChild<Text>();
+    chunkCountText_ = mainPage_->CreateChild<Text>();
     chunkCountText_->SetStyleAuto();
     chunkCountText_->SetText("Прорисовано чанков: 0");
     chunkCountText_->SetHorizontalAlignment(HA_CENTER);
@@ -80,11 +86,28 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
     if (uiFont)
         chunkCountText_->SetFont(uiFont, 18);
 
+    // Video section button
+    videoButton_ = mainPage_->CreateChild<Button>();
+    videoButton_->SetStyleAuto();
+    videoButton_->SetMinSize(360, 40);
+    videoButton_->SetPosition(80, 185);
+    videoButton_->SetName("VideoButton");
+
+    auto* videoText = videoButton_->CreateChild<Text>();
+    videoText->SetName("VideoText");
+    videoText->SetStyleAuto();
+    videoText->SetText("Видео");
+    if (uiFont)
+        videoText->SetFont(uiFont, 18);
+    videoText->SetHorizontalAlignment(HA_CENTER);
+    videoText->SetVerticalAlignment(VA_CENTER);
+    videoText->SetColor(Color::BLACK);
+
     // Close menu button
-    closeButton_ = panel->CreateChild<Button>();
+    closeButton_ = mainPage_->CreateChild<Button>();
     closeButton_->SetStyleAuto();
-    closeButton_->SetMinSize(300, 40);
-    closeButton_->SetPosition(75, 185);
+    closeButton_->SetMinSize(360, 40);
+    closeButton_->SetPosition(80, 335);
     closeButton_->SetName("CloseMenuButton");
 
     auto* ctxt = closeButton_->CreateChild<Text>();
@@ -98,10 +121,10 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
     ctxt->SetColor(Color::BLACK);
 
     // Exit button
-    exitButton_ = panel->CreateChild<Button>();
+    exitButton_ = mainPage_->CreateChild<Button>();
     exitButton_->SetStyleAuto();
-    exitButton_->SetMinSize(300, 40);
-    exitButton_->SetPosition(75, 235);
+    exitButton_->SetMinSize(360, 40);
+    exitButton_->SetPosition(80, 385);
     exitButton_->SetName("ExitButton");
 
     auto* etxt = exitButton_->CreateChild<Text>();
@@ -114,7 +137,104 @@ void PauseMenu::Create(UI* ui, ResourceCache* cache)
     etxt->SetVerticalAlignment(VA_CENTER);
     etxt->SetColor(Color::BLACK);
 
+    // Video page title
+    auto* videoTitle = videoPage_->CreateChild<Text>();
+    videoTitle->SetStyleAuto();
+    videoTitle->SetText("VIDEO");
+    videoTitle->SetHorizontalAlignment(HA_CENTER);
+    videoTitle->SetVerticalAlignment(VA_TOP);
+    videoTitle->SetPosition(0, 25);
+    videoTitle->SetColor(Color::WHITE);
+    if (uiFont)
+        videoTitle->SetFont(uiFont, 30);
+
+    // Display mode button
+    displayModeButton_ = videoPage_->CreateChild<Button>();
+    displayModeButton_->SetStyleAuto();
+    displayModeButton_->SetMinSize(360, 40);
+    displayModeButton_->SetPosition(80, 115);
+    displayModeButton_->SetName("DisplayModeButton");
+
+    displayModeText_ = displayModeButton_->CreateChild<Text>();
+    displayModeText_->SetName("DisplayModeText");
+    displayModeText_->SetStyleAuto();
+    displayModeText_->SetText("Режим: Оконный");
+    if (uiFont)
+        displayModeText_->SetFont(uiFont, 18);
+    displayModeText_->SetHorizontalAlignment(HA_CENTER);
+    displayModeText_->SetVerticalAlignment(VA_CENTER);
+    displayModeText_->SetColor(Color::BLACK);
+
+    // Aspect ratio button
+    aspectRatioButton_ = videoPage_->CreateChild<Button>();
+    aspectRatioButton_->SetStyleAuto();
+    aspectRatioButton_->SetMinSize(360, 40);
+    aspectRatioButton_->SetPosition(80, 165);
+    aspectRatioButton_->SetName("AspectRatioButton");
+
+    aspectRatioText_ = aspectRatioButton_->CreateChild<Text>();
+    aspectRatioText_->SetName("AspectRatioText");
+    aspectRatioText_->SetStyleAuto();
+    aspectRatioText_->SetText("Соотношение: 16:9");
+    if (uiFont)
+        aspectRatioText_->SetFont(uiFont, 18);
+    aspectRatioText_->SetHorizontalAlignment(HA_CENTER);
+    aspectRatioText_->SetVerticalAlignment(VA_CENTER);
+    aspectRatioText_->SetColor(Color::BLACK);
+
+    // Back button
+    videoBackButton_ = videoPage_->CreateChild<Button>();
+    videoBackButton_->SetStyleAuto();
+    videoBackButton_->SetMinSize(360, 40);
+    videoBackButton_->SetPosition(80, 235);
+    videoBackButton_->SetName("VideoBackButton");
+
+    auto* backText = videoBackButton_->CreateChild<Text>();
+    backText->SetName("VideoBackText");
+    backText->SetStyleAuto();
+    backText->SetText("Назад");
+    if (uiFont)
+        backText->SetFont(uiFont, 18);
+    backText->SetHorizontalAlignment(HA_CENTER);
+    backText->SetVerticalAlignment(VA_CENTER);
+    backText->SetColor(Color::BLACK);
+
     // Add to UI root
     if (ui)
         ui->GetRoot()->AddChild(root_);
+
+    ShowMainMenuPage();
+}
+
+void PauseMenu::ShowMainMenuPage()
+{
+    if (mainPage_)
+    {
+        mainPage_->SetVisible(true);
+        mainPage_->SetEnabled(true);
+    }
+    if (videoPage_)
+    {
+        videoPage_->SetVisible(false);
+        videoPage_->SetEnabled(false);
+    }
+}
+
+void PauseMenu::ShowVideoMenuPage()
+{
+    if (mainPage_)
+    {
+        mainPage_->SetVisible(false);
+        mainPage_->SetEnabled(false);
+    }
+    if (videoPage_)
+    {
+        videoPage_->SetVisible(true);
+        videoPage_->SetEnabled(true);
+    }
+}
+
+bool PauseMenu::IsVideoMenuPage() const
+{
+    return videoPage_ && videoPage_->IsVisible();
 }

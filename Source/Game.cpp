@@ -1,10 +1,12 @@
 #include "Game.h"
+#include <cmath>
 #include <string>
 #include <vector>
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/UI/Button.h>
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/Graphics/Graphics.h>
 #include "PauseMenu.h"
 
 Game::Game(Context* context) :
@@ -23,6 +25,19 @@ void Game::Setup()
 void Game::Start()
 {
     InitializeGame();
+    if (Graphics* graphics = GetSubsystem<Graphics>())
+    {
+        fullscreenMode_ = graphics->GetFullscreen();
+        const int h = graphics->GetHeight();
+        const int w = graphics->GetWidth();
+        if (h > 0)
+        {
+            const float ratio = static_cast<float>(w) / static_cast<float>(h);
+            aspectRatioMode_ = std::abs(ratio - (16.0f / 10.0f)) < std::abs(ratio - (16.0f / 9.0f))
+                ? AspectRatioMode::Ratio16x10
+                : AspectRatioMode::Ratio16x9;
+        }
+    }
     CreateScene();
     // Create pause menu and wire UI events
     UI* ui = GetSubsystem<UI>();
@@ -37,6 +52,10 @@ void Game::Start()
     {
         SubscribeToEvent(pauseMenu_->GetCloseButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleCloseMenu));
         SubscribeToEvent(pauseMenu_->GetExitButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleExitButton));
+        SubscribeToEvent(pauseMenu_->GetVideoButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleVideoButton));
+        SubscribeToEvent(pauseMenu_->GetVideoBackButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleVideoBackButton));
+        SubscribeToEvent(pauseMenu_->GetDisplayModeButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleDisplayModeButton));
+        SubscribeToEvent(pauseMenu_->GetAspectRatioButton(), E_RELEASED, URHO3D_HANDLER(Game, HandleAspectRatioButton));
         SubscribeToEvent(pauseMenu_->GetViewDistanceSlider(), E_SLIDERCHANGED, URHO3D_HANDLER(Game, HandleViewDistanceSlider));
         // For UI display, never show less than 1 (visual-only change)
         int displayViewDistance = viewDistance_ < 1 ? 1 : viewDistance_;
@@ -48,6 +67,7 @@ void Game::Start()
             std::string txt = std::string("Дальность прорисовки: ") + std::to_string(displayViewDistance);
             pauseMenu_->GetViewDistanceText()->SetText(txt.c_str());
         }
+        RefreshDisplaySettingsUi();
     }
     if (consoleInput_)
         SubscribeToEvent(consoleInput_, E_TEXTFINISHED, URHO3D_HANDLER(Game, HandleConsoleTextFinished));
@@ -92,6 +112,7 @@ void Game::ShowPauseMenu()
     Input* in = GetSubsystem<Input>();
     if (pauseMenu_ && pauseMenu_->GetRoot())
     {
+        pauseMenu_->ShowMainMenuPage();
         auto r = pauseMenu_->GetRoot();
         r->SetVisible(true);
         r->SetEnabled(true);
@@ -111,6 +132,7 @@ void Game::HidePauseMenuAndResume()
     UI* ui = GetSubsystem<UI>();
     if (pauseMenu_ && pauseMenu_->GetRoot())
     {
+        pauseMenu_->ShowMainMenuPage();
         auto r = pauseMenu_->GetRoot();
         r->SetVisible(false);
         r->SetEnabled(false);
@@ -118,6 +140,97 @@ void Game::HidePauseMenuAndResume()
     if (ui)
         ui->SetFocusElement(nullptr);
     ResumeGame();
+}
+
+void Game::ToggleFullscreenMode()
+{
+    fullscreenMode_ = !fullscreenMode_;
+    ApplyDisplaySettings();
+}
+
+void Game::ToggleAspectRatioMode()
+{
+    aspectRatioMode_ = aspectRatioMode_ == AspectRatioMode::Ratio16x9
+        ? AspectRatioMode::Ratio16x10
+        : AspectRatioMode::Ratio16x9;
+    ApplyDisplaySettings();
+}
+
+void Game::ApplyDisplaySettings()
+{
+    Graphics* graphics = GetSubsystem<Graphics>();
+    UI* ui = GetSubsystem<UI>();
+    if (!graphics)
+        return;
+
+    const float ratio = aspectRatioMode_ == AspectRatioMode::Ratio16x9 ? 16.0f / 9.0f : 16.0f / 10.0f;
+    int targetHeight = aspectRatioMode_ == AspectRatioMode::Ratio16x9 ? 720 : 800;
+    int targetWidth = static_cast<int>(targetHeight * ratio + 0.5f);
+
+    WindowSettings settings = graphics->GetWindowSettings();
+    settings.mode_ = fullscreenMode_ ? WindowMode::Fullscreen : WindowMode::Windowed;
+
+    if (fullscreenMode_)
+    {
+        const IntVector2 desktopSize = graphics->GetDesktopResolution(settings.monitor_);
+        if (desktopSize.x_ > 0 && desktopSize.y_ > 0)
+        {
+            targetHeight = desktopSize.y_;
+            targetWidth = static_cast<int>(targetHeight * ratio + 0.5f);
+            if (targetWidth > desktopSize.x_)
+            {
+                targetWidth = desktopSize.x_;
+                targetHeight = static_cast<int>(targetWidth / ratio + 0.5f);
+            }
+        }
+    }
+
+    if (targetWidth < 320)
+        targetWidth = 320;
+    if (targetHeight < 240)
+        targetHeight = 240;
+
+    settings.size_ = IntVector2(targetWidth, targetHeight);
+    if (!graphics->SetScreenMode(settings))
+    {
+        fullscreenMode_ = graphics->GetFullscreen();
+        RefreshDisplaySettingsUi();
+        return;
+    }
+
+    if (!fullscreenMode_)
+    {
+        const IntVector2 desktopSize = graphics->GetDesktopResolution(settings.monitor_);
+        if (desktopSize.x_ > 0 && desktopSize.y_ > 0)
+        {
+            const int posX = Max((desktopSize.x_ - targetWidth) / 2, 0);
+            const int posY = Max((desktopSize.y_ - targetHeight) / 2, 0);
+            graphics->SetWindowPosition(posX, posY);
+        }
+    }
+
+    if (cameraNode_)
+    {
+        if (Camera* camera = cameraNode_->GetComponent<Camera>())
+            camera->SetAspectRatio(ratio);
+    }
+
+    if (pauseMenu_ && pauseMenu_->GetRoot() && ui)
+        pauseMenu_->GetRoot()->SetSize(ui->GetRoot()->GetSize());
+    RefreshDisplaySettingsUi();
+}
+
+void Game::RefreshDisplaySettingsUi()
+{
+    if (!pauseMenu_)
+        return;
+
+    if (pauseMenu_->GetDisplayModeText())
+        pauseMenu_->GetDisplayModeText()->SetText(fullscreenMode_ ? "Режим: Полноэкранный" : "Режим: Оконный");
+
+    if (pauseMenu_->GetAspectRatioText())
+        pauseMenu_->GetAspectRatioText()->SetText(
+            aspectRatioMode_ == AspectRatioMode::Ratio16x9 ? "Соотношение: 16:9" : "Соотношение: 16:10");
 }
 
 void Game::CreateScene()
@@ -229,7 +342,12 @@ void Game::HandleUpdate(StringHash eventType, VariantMap& eventData)
     {
         bool menuVisible = pauseMenu_ && pauseMenu_->GetRoot() && pauseMenu_->GetRoot()->IsVisible();
         if (menuVisible || gameState_ == GameState::Paused)
-            HidePauseMenuAndResume();
+        {
+            if (pauseMenu_ && pauseMenu_->IsVideoMenuPage())
+                pauseMenu_->ShowMainMenuPage();
+            else
+                HidePauseMenuAndResume();
+        }
         else
             ShowPauseMenu();
         return;
@@ -249,6 +367,36 @@ void Game::HandleCloseMenu(StringHash eventType, VariantMap& eventData)
     (void)eventType;
     (void)eventData;
     HidePauseMenuAndResume();
+}
+
+void Game::HandleDisplayModeButton(StringHash eventType, VariantMap& eventData)
+{
+    (void)eventType;
+    (void)eventData;
+    ToggleFullscreenMode();
+}
+
+void Game::HandleVideoButton(StringHash eventType, VariantMap& eventData)
+{
+    (void)eventType;
+    (void)eventData;
+    if (pauseMenu_)
+        pauseMenu_->ShowVideoMenuPage();
+}
+
+void Game::HandleVideoBackButton(StringHash eventType, VariantMap& eventData)
+{
+    (void)eventType;
+    (void)eventData;
+    if (pauseMenu_)
+        pauseMenu_->ShowMainMenuPage();
+}
+
+void Game::HandleAspectRatioButton(StringHash eventType, VariantMap& eventData)
+{
+    (void)eventType;
+    (void)eventData;
+    ToggleAspectRatioMode();
 }
 
 void Game::HandleViewDistanceSlider(StringHash eventType, VariantMap& eventData)

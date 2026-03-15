@@ -74,6 +74,11 @@ private:
         Playing,
         Paused
     };
+    enum class AspectRatioMode
+    {
+        Ratio16x9,
+        Ratio16x10
+    };
 
     void InitializeGame();
     void StartGame();
@@ -81,6 +86,10 @@ private:
     void ResumeGame();
     void ShowPauseMenu();
     void HidePauseMenuAndResume();
+    void ToggleFullscreenMode();
+    void ToggleAspectRatioMode();
+    void ApplyDisplaySettings();
+    void RefreshDisplaySettingsUi();
 
     void CreateScene();
     void CreateWorldGeometry();
@@ -131,6 +140,10 @@ private:
     // Menu handlers
     void HandleCloseMenu(StringHash eventType, VariantMap& eventData);
     void HandleExitButton(StringHash eventType, VariantMap& eventData);
+    void HandleVideoButton(StringHash eventType, VariantMap& eventData);
+    void HandleVideoBackButton(StringHash eventType, VariantMap& eventData);
+    void HandleDisplayModeButton(StringHash eventType, VariantMap& eventData);
+    void HandleAspectRatioButton(StringHash eventType, VariantMap& eventData);
     void HandleViewDistanceSlider(StringHash eventType, VariantMap& eventData);
     void HandleConsoleTextFinished(StringHash eventType, VariantMap& eventData);
     void HandleConsoleTextInput(StringHash eventType, VariantMap& eventData);
@@ -140,4 +153,7 @@ private:
     SharedPtr<LineEdit> consoleInput_;
     ea::vector<ea::string> consoleLines_;
     bool consoleVisible_{false};
+
+    bool fullscreenMode_{false};
+    AspectRatioMode aspectRatioMode_{AspectRatioMode::Ratio16x9};
 };

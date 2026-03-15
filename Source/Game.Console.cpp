@@ -70,7 +70,7 @@ void Game::CreateConsoleUI()
     }
 
     ui->GetRoot()->AddChild(consoleRoot_);
-    AddConsoleLine("Console ready. xyz mode: Z=height. Commands: teleport x y z, speed value, coordinate");
+    AddConsoleLine("Console ready. Commands: teleport x y z, speed value, coordinate, fullscreen, aspect 16:9|16:10");
 }
 
 void Game::ToggleConsole()
@@ -189,7 +189,32 @@ void Game::ExecuteConsoleCommand(const ea::string& commandLine)
         return;
     }
 
-    AddConsoleLine("Unknown command. Available: teleport, speed, coordinate");
+    if (command == "fullscreen")
+    {
+        ToggleFullscreenMode();
+        AddConsoleLine(fullscreenMode_ ? "Fullscreen mode enabled." : "Windowed mode enabled.");
+        return;
+    }
+
+    if (command == "aspect")
+    {
+        std::string value;
+        iss >> value;
+        if (value != "16:9" && value != "16:10")
+        {
+            AddConsoleLine("Usage: aspect 16:9|16:10");
+            return;
+        }
+
+        const AspectRatioMode targetMode = value == "16:10" ? AspectRatioMode::Ratio16x10 : AspectRatioMode::Ratio16x9;
+        if (aspectRatioMode_ != targetMode)
+            ToggleAspectRatioMode();
+
+        AddConsoleLine(value == "16:10" ? "Aspect ratio set to 16:10." : "Aspect ratio set to 16:9.");
+        return;
+    }
+
+    AddConsoleLine("Unknown command. Available: teleport, speed, coordinate, fullscreen, aspect");
 }
 
 void Game::HandleConsoleTextFinished(StringHash eventType, VariantMap& eventData)
