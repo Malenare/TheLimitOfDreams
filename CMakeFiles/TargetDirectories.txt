@@ -1,0 +1,3 @@
+/Users/marat/proga/TheLimitOfDreams/CMakeFiles/TheLimitOfDreams.dir
+/Users/marat/proga/TheLimitOfDreams/CMakeFiles/edit_cache.dir
+/Users/marat/proga/TheLimitOfDreams/CMakeFiles/rebuild_cache.dir
