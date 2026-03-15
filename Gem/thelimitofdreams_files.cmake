@@ -1,0 +1,12 @@
+set(FILES
+    Include/TheLimitOfDreams/TheLimitOfDreamsBus.h
+    Include/TheLimitOfDreams/TheLimitOfDreamsTypeIds.h
+    Source/TheLimitOfDreamsSystemComponent.cpp
+    Source/TheLimitOfDreamsSystemComponent.h
+    Source/Game.cpp
+    Source/Game.h
+    Source/Game.Console.cpp
+    Source/Game.Terrain.cpp
+    Source/PauseMenu.cpp
+    Source/PauseMenu.h
+)

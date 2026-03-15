@@ -1,63 +1,31 @@
-cmake_minimum_required(VERSION 3.16)
+if(NOT PROJECT_NAME)
+    cmake_minimum_required(VERSION 3.24)
 
-project(TheLimitOfDreams LANGUAGES CXX)
+    # Allow overriding engine discovery script via project.json/user/project.json.
+    function(get_engine_finder_cmake_path project_json_file_path path_value)
+        if(NOT ${path_value} AND EXISTS "${project_json_file_path}")
+            file(READ "${project_json_file_path}" project_json_data)
+            string(JSON engine_finder_cmake_value ERROR_VARIABLE json_error GET ${project_json_data} "engine_finder_cmake_path")
+            cmake_path(APPEND CMAKE_CURRENT_SOURCE_DIR "${engine_finder_cmake_value}" engine_finder_cmake_value)
+            if(NOT json_error AND EXISTS "${engine_finder_cmake_value}")
+                set(${path_value} "${engine_finder_cmake_value}" PARENT_SCOPE)
+            endif()
+        endif()
+    endfunction()
 
-# Ensure C++17 for compatibility with Urho3D headers
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+    get_engine_finder_cmake_path("${CMAKE_CURRENT_SOURCE_DIR}/user/project.json" engine_finder_cmake_path)
+    get_engine_finder_cmake_path("${CMAKE_CURRENT_SOURCE_DIR}/project.json" engine_finder_cmake_path)
+    if(NOT engine_finder_cmake_path)
+        set(engine_finder_cmake_path cmake/EngineFinder.cmake)
+    endif()
 
-# If URHO3D_DIR is not provided, prefer the local rbfx shared install created earlier.
-if(NOT DEFINED URHO3D_DIR)
-	# Prefer the local rbfx shared install (shared build) if available
-	set(_default_urho_dir "${CMAKE_SOURCE_DIR}/../rbfx/build/install/share/Urho3D/CMake")
-	if(EXISTS "${_default_urho_dir}/Urho3DConfig.cmake")
-		set(URHO3D_DIR "${_default_urho_dir}" CACHE PATH "Path to Urho3DConfig.cmake")
-		message(STATUS "Using local Urho3D from: ${URHO3D_DIR}")
-	endif()
+    include(${engine_finder_cmake_path} OPTIONAL)
+    find_package(o3de 2510.2 EXACT REQUIRED)
+
+    project(TheLimitOfDreams
+        LANGUAGES C CXX
+        VERSION 1.0.0.0
+    )
+
+    o3de_initialize()
 endif()
-
-# Also add the install prefix to CMAKE_PREFIX_PATH so find_package can locate the config.
-set(_default_urho_prefix "${CMAKE_SOURCE_DIR}/../rbfx/build/install")
-if(EXISTS "${_default_urho_prefix}/share/Urho3D/CMake/Urho3DConfig.cmake")
-	list(APPEND CMAKE_PREFIX_PATH "${_default_urho_prefix}")
-	message(STATUS "Appended ${_default_urho_prefix} to CMAKE_PREFIX_PATH")
-	# Do not force URHO3D_SHARED here: it may mismatch installed package tag
-	# (e.g. macos-arm64-lib vs macos-arm64-dll) and break find_package.
-endif()
-
-find_package(Urho3D REQUIRED)
-
-file(GLOB_RECURSE GAME_SOURCES Source/*.cpp)
-
-add_executable(TheLimitOfDreams ${GAME_SOURCES})
-
-target_link_libraries(TheLimitOfDreams PRIVATE Urho3D)
-
-target_include_directories(TheLimitOfDreams PRIVATE Source)
-
-# Post-build: create convenient `Data` directory in build pointing to engine data
-# Uses first entry of CMAKE_PREFIX_PATH as Urho3D install prefix if available.
-if(CMAKE_PREFIX_PATH)
-	list(GET CMAKE_PREFIX_PATH 0 URHO3D_PREFIX)
-else()
-	set(URHO3D_PREFIX "${CMAKE_INSTALL_PREFIX}")
-endif()
-
-add_custom_command(TARGET TheLimitOfDreams POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/Data
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/Techniques
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/Shaders
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/Models
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/Materials
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/Textures
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/RenderPaths
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/Data/UI
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/Techniques" "${CMAKE_BINARY_DIR}/Data/Techniques"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/Shaders" "${CMAKE_BINARY_DIR}/Data/Shaders"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/Models" "${CMAKE_BINARY_DIR}/Data/Models"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/Materials" "${CMAKE_BINARY_DIR}/Data/Materials"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/Data/Textures" "${CMAKE_BINARY_DIR}/Data/Textures"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/RenderPaths" "${CMAKE_BINARY_DIR}/Data/RenderPaths"
-	COMMAND ${CMAKE_COMMAND} -E create_symlink "${URHO3D_PREFIX}/bin/CoreData/UI" "${CMAKE_BINARY_DIR}/Data/UI"
-)

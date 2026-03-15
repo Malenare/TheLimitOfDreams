@@ -1,0 +1,25 @@
+{
+    "project_name": "TheLimitOfDreams",
+    "version": "1.0.0",
+    "project_id": "{560FFEA2-6670-484A-BF7A-439C62053FE9}",
+    "display_name": "The Limit Of Dreams",
+    "summary": "The Limit Of Dreams ported to O3DE 2510.2.",
+    "canonical_tags": [
+        "Project"
+    ],
+    "user_tags": [
+        "TheLimitOfDreams"
+    ],
+    "icon_path": "preview.png",
+    "engine": "o3de",
+    "external_subdirectories": [
+        "Gem"
+    ],
+    "gem_names": [
+        "TheLimitOfDreams",
+        "Atom",
+        "CameraFramework",
+        "ImGui",
+        "StartingPointInput"
+    ]
+}
